@@ -25,7 +25,7 @@ This project filters and qualifies LinkedIn posts using keyword rules and Ideal 
 
 5. **Run the Workflow**  
    - Trigger manually or on a schedule.
-   - Output will be saved to Google Sheets or Airtable with fields like `confidence`, `reason`, and `date_extracted`.
+   - Output will be saved to Google Sheets with fields like `confidence`, `reason`, and `date_extracted`.
 
 ---
 
@@ -33,7 +33,7 @@ This project filters and qualifies LinkedIn posts using keyword rules and Ideal 
 
 - [n8n](https://n8n.io) – automation and workflow engine  
 - JSON for input/output formats  
-- Optional: Google Sheets or Airtable for structured lead storage
+- Optional: Google Sheets for structured lead storage
 
 ---
 
