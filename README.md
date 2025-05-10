@@ -33,7 +33,7 @@ This project filters and qualifies LinkedIn posts using keyword rules and Ideal 
 
 - [n8n](https://n8n.io) – automation and workflow engine  
 - JSON for input/output formats  
-- Optional: Google Sheets for structured lead storage
+- Google Sheets for structured lead storage
 
 ---
 
@@ -47,10 +47,33 @@ This project filters and qualifies LinkedIn posts using keyword rules and Ideal 
 
 ---
 
+## ✅ Expected Result
+
+When the workflow is executed, it will generate two separate spreadsheets:
+
+1. **`all_matched_results`** – contains **all posts** that match **any of the defined keywords**, regardless of ICP match.
+2. **`filtered_results`** – contains only **qualified posts** that match both **keywords AND ICP criteria**, along with confidence scoring and reason.
+
+These outputs help you distinguish between general interest and highly targeted leads.
+
+### 📸 Sample Screenshots
+
+**All Matched Results Preview:**
+
+![All Matched Results](screenshots/all_matched_results.png)
+
+**Filtered Results Preview:**
+
+![Filtered Results](screenshots/filtered_results.png)
+
+
+---
+
 ## 📄 Sample Output
 
-A sample output file containing 20+ filtered results is included here:
+Two sample output files are included for quick review:
 
-📁 [`filtered_results.json`](filtered_results.json)
+- 📁 [`all_matched_results.json`](all_matched_results.json)
+- 📁 [`filtered_results.json`](filtered_results.json)
 
-Alternatively, you can view the same results stored in a Google Sheet or Airtable (linked separately, if applicable).
+Alternatively, the same results can be viewed in Google Sheets or Airtable (linked separately if available).
