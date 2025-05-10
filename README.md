@@ -60,13 +60,13 @@ These outputs help you distinguish between general interest and highly targeted 
 
 **All Matched Results Preview:**
 
-![All Matched Results](all_results.png)
+![All Matched Results](screenshots/all_results.png)
 
-![All Matched Results](all_results_2.png)
+![All Matched Results](screenshots/all_results_2.png)
 
 **Filtered Results Preview:**
 
-![Filtered Results](filtered_results.png)
+![Filtered Results](screenshots/filtered_results.png)
 
 
 ---
@@ -75,7 +75,7 @@ These outputs help you distinguish between general interest and highly targeted 
 
 Two sample output files are included for quick review:
 
-- 📁 [`all_matched_results.json`](all_matched_results.json)
-- 📁 [`filtered_results.json`](filtered_results.json)
+- 📁 [`all_matched_results.json`](results/all_matched_results.json)
+- 📁 [`filtered_results.json`](results/filtered_results.json)
 
 Alternatively, the same results can be viewed in Google Sheets or Airtable (linked separately if available).
