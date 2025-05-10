@@ -60,11 +60,13 @@ These outputs help you distinguish between general interest and highly targeted 
 
 **All Matched Results Preview:**
 
-![All Matched Results](screenshots/all_matched_results.png)
+![All Matched Results](all_results.png)
+
+![All Matched Results](all_results_2.png)
 
 **Filtered Results Preview:**
 
-![Filtered Results](screenshots/filtered_results.png)
+![Filtered Results](filtered_results.png)
 
 
 ---
