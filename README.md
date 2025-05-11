@@ -99,5 +99,5 @@ These outputs help you distinguish between general interest and highly targeted 
 
 Two sample output files are included for quick review:
 
-- 📁 [`all_matched_results.json`](results/All_results.json)
-- 📁 [`filtered_results.json`](results/Filtered_results.json)
+- 📁 [`all_matched_results.pdf`](results/All_results.pdf)
+- 📁 [`filtered_results.pdf`](results/Filtered_results.pdf)
