@@ -1,6 +1,6 @@
-# 🔍 LinkedIn Lead Qualification Automation (n8n)
+# 🔍 Twitter "x" Lead Qualification Automation (n8n)
 
-This project filters and qualifies LinkedIn posts using keyword rules and Ideal Customer Profile (ICP) logic. It deduplicates results and stores high-confidence matches in a structured format with the date of extraction.
+This project filters and qualifies Twitter posts using keyword rules and Ideal Customer Profile (ICP) logic. It deduplicates results and stores high-confidence matches in a structured format with the date of extraction.
 
 > ⚠️ **Note:** Dummy data for posts, keyword rules, and ICP logic is already pre-defined within the provided workflow. You do **not** need to manually create `keywords.json` or `icp_config.json` unless you want to customize them.
 
@@ -16,7 +16,7 @@ This project filters and qualifies LinkedIn posts using keyword rules and Ideal 
    - Import the provided `Keyword Tracker.json`.
 
 3. **Configure Data Source**  
-   - The workflow includes dummy LinkedIn post data for testing purposes.
+   - The workflow includes dummy Twitter post data for testing purposes.
    - You can connect your own HTTP/API node for real data if desired.
 
 4. **Keyword & ICP Configs**  
@@ -54,7 +54,7 @@ This project filters and qualifies LinkedIn posts using keyword rules and Ideal 
 - **Deduplication** is done via the `post_url` field to ensure unique entries in the final outputs.
 - **Date of extraction** is appended to each result for tracking and auditing purposes.
 - **Engagement data** (likes, comments) is optional but helps improve scoring accuracy.
-- Dummy data is used in this automation (via `dummy_data` node), but the system is designed to plug into a real-time source (e.g., LinkedIn scraper or Serper API).
+- Dummy data is used in this automation (via `dummy_data` node), but the system can easily be refactored to plug into a real-time source (e.g., Twitter scraper or Serper API).
 - **Google Sheets** is used for dynamic keyword/ICP input and result output, but can be swapped for Airtable, or JSON files.
 - **Limitations**:
   - No front-end UI.
@@ -64,7 +64,7 @@ This project filters and qualifies LinkedIn posts using keyword rules and Ideal 
 
 ## ⏳ Optional Features (Not Implemented Due to Time Constraints)
 
-- **Live data sourcing** via LinkedIn scraping or APIs like Serper was planned but skipped to focus on core filtering logic. The system is designed to accept such integrations easily.
+- **Live data sourcing** via Twitter scraping or APIs like Serper was planned but skipped to focus on core filtering logic. The system is designed to accept such integrations easily.
 - **Storage flexibility**: Google Sheets is used for both input (keywords, ICP titles) and output (results), but the workflow can be adapted for Airtable or other databases.
 - **Scheduled extractions** and **alerting via Slack or email** are supported by n8n but were not included to keep the scope focused and manageable within the time limit.
 - Instead I made intentional trade-offs to focus on accuracy and completeness.
