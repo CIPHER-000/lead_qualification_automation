@@ -1,0 +1,539 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        100
+      ],
+      "id": "d2605dd6-264e-463a-a1d5-0a9d0a8a10c8",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert AI lead scoring assistant.\n\nA lead has already been scored based on hard-coded keyword and ICP logic. Your task is to:\n\nReview the post content and user bio.\n\nValidate or slightly adjust the confidence score if the content shows strong intent or interest beyond keyword matching.\n\nWrite a brief reason to justify the confidence score.\n\nPost content:\n\"{{ $json[\"content\"] }}\"\n\nUser bio:\n\"{{ $json[\"bio\"] }}\"\n\nMatched keywords: {{ $json[\"matched_keyword\"] }}\nPost URL: {{ $json[\"post_url\"] }}\nUser profile: {{ $json[\"user_profile_url\"] }}\n\nInitial Confidence Score: {{ $json[\"confidence_score\"] }}\n\nIf the post shows clear buyer intent, dissatisfaction with a competitor, or urgent need, you may increase the score up to +0.1.\nIf the post feels vague or unrelated to real sales intent, you may decrease by -0.1.\nOtherwise, keep the score as is.\n\n⚠️ Final confidence score must be between 0 and 1.0 (cap at 1.0 if exceeded).\n\nReturn this exact JSON format (no markdown, no extra text):\n{\n\"post_url\": \"{{ $json[\"post_url\"] }}\",\n\"poster_profile\": \"{{ $json[\"user_profile_url\"] }}\",\n\"match_keyword\": \"{{ $json[\"matched_keyword\"] }}\",\n\"confidence\": 0.94,\n\"reason\": \"User shows dissatisfaction with Apollo and high engagement; strong buying intent confirmed by bio.\"\n}",
+              "role": "assistant"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1780,
+        120
+      ],
+      "id": "a8b0ab15-0618-44d1-a39e-5c7885e5397a",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "fz3docZDQ48paRD1",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        660,
+        -20
+      ],
+      "id": "8107de10-a55f-41d0-a9c7-16a8edb61ca8",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        840,
+        160
+      ],
+      "id": "a445e46f-f4ce-44d4-be25-5d689591f720"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "post_id",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        440,
+        100
+      ],
+      "id": "c6598537-1e7c-45bd-8cfe-edf20c1392bb",
+      "name": "Split Out",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const posts = items[0].json.post_data;\n\nreturn posts.map(post => ({\n  json: post\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        100
+      ],
+      "id": "f212400a-a83c-4daf-8577-6ce63ba0af95",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = [];\n\nconst keywords = [\n  \"apollo\", \"outreach\", \"leads\", \"pipeline\", \"crm\",\n  \"sales enablement\", \"sdr tools\", \"prospecting\", \"revenue\",\n  \"sales navigator\", \"seamless.ai\", \"lusha\", \"sales tools\"\n];\n\nconst icpTitles = [\n  \"head of growth\", \"marketing\", \"growth lead\", \"growth manager\",\n  \"revenue leader\", \"sdr\", \"sales development representative\",\n  \"ae\", \"account executive\", \"gtm\", \"go-to-market\",\n  \"sales ops\", \"sales operations\", \"sales enablement\", \"ceo\"\n];\n\nfor (const item of items) {\n  const bio = item.json.bio?.toLowerCase() || \"\";\n  const content = item.json.content?.toLowerCase() || \"\";\n  const username = item.json.username || \"\";\n  const post_url = item.json.post_url || \"\";\n  const user_profile_url = item.json.user_profile_url || \"\";\n  const likes = item.json.likes || 0;\n  const comments = item.json.comments || 0;\n  const date_posted = item.json.date_posted || \"\";\n\n  let matched_keyword = null;\n  for (const k of keywords) {\n    const regex = new RegExp(`\\\\b${k}\\\\b`, 'i');\n    if (regex.test(bio) || regex.test(content)) {\n      matched_keyword = k;\n      break;\n    }\n  }\n\n  const isICP = icpTitles.some(title => bio.includes(title));\n\n  // ✅ Only include posts that match both keyword AND ICP\n  if (matched_keyword && isICP) {\n    // Optional confidence scoring logic\n    let confidence = 0.6;\n    if (likes > 10) confidence += 0.2;\n    if (comments > 3) confidence += 0.2;\n    confidence = Math.min(confidence, 1.0);\n    confidence = Math.round(confidence * 100) / 100;\n\n    output.push({\n      json: {\n        post_url,\n        user_profile_url,\n        matched_keyword,\n        confidence_score: confidence,\n        reason: `Matched keyword \"${matched_keyword}\" in post or bio and poster fits ICP (e.g. ${bio}).`,\n        username,\n        content,\n        bio,\n        date_posted\n      }\n    });\n  }\n}\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        240
+      ],
+      "id": "994a0f1c-e62b-4c49-9c16-ac75276813f2",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = [];\n\nconst keywords = [\n  \"apollo\", \"outreach\", \"leads\", \"pipeline\", \"crm\",\n  \"sales enablement\", \"sdr tools\", \"prospecting\", \"revenue\",\n  \"sales navigator\", \"seamless.ai\", \"lusha\", \"sales tools\"\n];\n\nfor (const item of items) {\n  const bio = item.json.bio?.toLowerCase() || \"\";\n  const content = item.json.content?.toLowerCase() || \"\";\n\n  let matched_keyword = null;\n  for (const k of keywords) {\n    const regex = new RegExp(`\\\\b${k}\\\\b`, 'i');\n    if (regex.test(bio) || regex.test(content)) {\n      matched_keyword = k;\n      break;\n    }\n  }\n\n  if (!matched_keyword) continue;\n\n  output.push({\n    json: {\n      username: item.json.username || \"\",\n      bio: item.json.bio || \"\",\n      content: item.json.content || \"\",\n      matched_keyword,\n      post_url: item.json.post_url || \"\",\n      user_profile_url: item.json.user_profile_url || \"\",\n      likes: item.json.likes || 0,\n      comments: item.json.comments || 0,\n      date_posted: item.json.date_posted || \"\"\n    }\n  });\n}\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        -160
+      ],
+      "id": "8d2981bf-10eb-424f-b89e-cf8306756ef1",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "17CJzZM7TXeT0T33RNTTSKwxWtkBoXAz3nOEbtDZo5ww",
+          "mode": "list",
+          "cachedResultName": "Filtered_results",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17CJzZM7TXeT0T33RNTTSKwxWtkBoXAz3nOEbtDZo5ww/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17CJzZM7TXeT0T33RNTTSKwxWtkBoXAz3nOEbtDZo5ww/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "post_url": "={{ $json[\"message\"][\"content\"][\"post_url\"] }}",
+            "profile_url": "={{ $json[\"message\"][\"content\"][\"poster_profile\"] }}",
+            "confidence_score": "={{ $json[\"message\"][\"content\"][\"confidence\"] }}",
+            "reason": "={{ $json[\"message\"][\"content\"][\"reason\"] }}",
+            "matched_keywords": "={{ $json[\"message\"][\"content\"][\"match_keyword\"] }}",
+            "date_extracted": "={{ $now.toISO().split('T')[0] }}"
+          },
+          "matchingColumns": [
+            "post_url"
+          ],
+          "schema": [
+            {
+              "id": "post_url",
+              "displayName": "post_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "profile_url",
+              "displayName": "profile_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "confidence_score",
+              "displayName": "confidence_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reason",
+              "displayName": "reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "matched_keywords",
+              "displayName": "matched_keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_extracted",
+              "displayName": "date_extracted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2160,
+        120
+      ],
+      "id": "79c6d357-78d0-410f-92df-f900d3db3778",
+      "name": "Filtered_results",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PmhSi3twd7SGFIpO",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1ly-1DTMdnZidYVk-otSv4S3DgZwblS619VfkSgTFDCc",
+          "mode": "list",
+          "cachedResultName": "All_results",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ly-1DTMdnZidYVk-otSv4S3DgZwblS619VfkSgTFDCc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ly-1DTMdnZidYVk-otSv4S3DgZwblS619VfkSgTFDCc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "username": "={{ $json.username }}",
+            "bio": "={{ $json.bio }}",
+            "content": "={{ $json.content }}",
+            "matched_keyword": "={{ $json.matched_keyword }}",
+            "post_url": "={{ $json.post_url }}",
+            "profile_url": "={{ $json.user_profile_url }}",
+            "date_posted": "={{ $json.date_posted }}",
+            "likes": "={{ $json.likes }}",
+            "comments": "={{ $json.comments }}",
+            "date_extracted": "={{ $now.toISO().split('T')[0] }}"
+          },
+          "matchingColumns": [
+            "username"
+          ],
+          "schema": [
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bio",
+              "displayName": "bio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content",
+              "displayName": "content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "matched_keyword",
+              "displayName": "matched_keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "post_url",
+              "displayName": "post_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profile_url",
+              "displayName": "profile_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_posted",
+              "displayName": "date_posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "likes",
+              "displayName": "likes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "comments",
+              "displayName": "comments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_extracted",
+              "displayName": "date_extracted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1780,
+        -40
+      ],
+      "id": "efd98aef-60a1-4bdd-8278-895034b56dc3",
+      "name": "All_matched_results",
+      "alwaysOutputData": true,
+      "executeOnce": false,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PmhSi3twd7SGFIpO",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b7300c01-44a3-45ed-a867-704b229951cd",
+              "name": "=post_data",
+              "value": "=[\n  {\n    \"post_id\": \"10000\",\n    \"post_url\": \"https://twitter.com/alicebrown/status/10000\",\n    \"user_profile_url\": \"https://twitter.com/alicebrown\",\n    \"username\": \"Alice Brown\",\n    \"bio\": \"Head of Growth @SaaSCo 🚀\",\n    \"content\": \"We've been using Apollo, but not satisfied with it lately. Thinking about a change to better sales tools and prospecting strategies.\",\n    \"likes\": 25,\n    \"comments\": 6,\n    \"date_posted\": \"2025-04-09\"\n  },\n  {\n    \"post_id\": \"10001\",\n    \"post_url\": \"https://twitter.com/bobsmith/status/10001\",\n    \"user_profile_url\": \"https://twitter.com/bobsmith\",\n    \"username\": \"Bob Smith\",\n    \"bio\": \"Marketing @FastGrowth | SaaS Fanatic\",\n    \"content\": \"We've been using Lusha, but not satisfied with it lately. Thinking about a change to improve our pipeline with better sdr tools.\",\n    \"likes\": 8,\n    \"comments\": 4,\n    \"date_posted\": \"2025-04-25\"\n  },\n  {\n    \"post_id\": \"10002\",\n    \"post_url\": \"https://twitter.com/clarajohnson/status/10002\",\n    \"user_profile_url\": \"https://twitter.com/clarajohnson\",\n    \"username\": \"Clara Johnson\",\n    \"bio\": \"Sales Leader | Tech Enthusiast\",\n    \"content\": \"We're currently using LinkedIn Sales Navigator. So far, no complaints so far! It’s been a reliable sales enablement tool.\",\n    \"likes\": 8,\n    \"comments\": 10,\n    \"date_posted\": \"2025-05-03\"\n  },\n  {\n    \"post_id\": \"10003\",\n    \"post_url\": \"https://twitter.com/danielwu/status/10003\",\n    \"user_profile_url\": \"https://twitter.com/danielwu\",\n    \"username\": \"Daniel Wu\",\n    \"bio\": \"Sales @TechStartups | Opinions my own\",\n    \"content\": \"We're currently using Seamless.ai. So far, satisfied with ZoomInfo's lead generation and sales tools!\",\n    \"likes\": 14,\n    \"comments\": 2,\n    \"date_posted\": \"2025-04-24\"\n  },\n  {\n    \"post_id\": \"10004\",\n    \"post_url\": \"https://twitter.com/evelynking/status/10004\",\n    \"user_profile_url\": \"https://twitter.com/evelynking\",\n    \"username\": \"Evelyn King\",\n    \"bio\": \"Founder | Building things that matter 💡\",\n    \"content\": \"We've been using ZoomInfo, but frustrated with it lately. Thinking about a change to something more efficient for sales enablement.\",\n    \"likes\": 6,\n    \"comments\": 7,\n    \"date_posted\": \"2025-04-18\"\n  },\n  {\n    \"post_id\": \"10005\",\n    \"post_url\": \"https://twitter.com/frankharris/status/10005\",\n    \"user_profile_url\": \"https://twitter.com/frankharris\",\n    \"username\": \"Frank Harris\",\n    \"bio\": \"Growth & RevOps at LogicFirm ⚙️\",\n    \"content\": \"We've been using Seamless.ai, but exploring new tools lately. Looking for something with better CRM capabilities for our sales process.\",\n    \"likes\": 0,\n    \"comments\": 4,\n    \"date_posted\": \"2025-04-12\"\n  },\n  {\n    \"post_id\": \"10006\",\n    \"post_url\": \"https://twitter.com/gracekim/status/10006\",\n    \"user_profile_url\": \"https://twitter.com/gracekim\",\n    \"username\": \"Grace Kim\",\n    \"bio\": \"Product-led GTM @ScaleOps\",\n    \"content\": \"We've been using LinkedIn Sales Navigator, but looking for a better solution for prospecting leads and improving our pipeline.\",\n    \"likes\": 43,\n    \"comments\": 5,\n    \"date_posted\": \"2025-04-17\"\n  },\n  {\n    \"post_id\": \"10007\",\n    \"post_url\": \"https://twitter.com/henryzhang/status/10007\",\n    \"user_profile_url\": \"https://twitter.com/henryzhang\",\n    \"username\": \"Henry Zhang\",\n    \"bio\": \"Startup Sales @FastFlow\",\n    \"content\": \"We've been using LinkedIn Sales Navigator, but looking for a better solution to boost sales and pipeline management.\",\n    \"likes\": 14,\n    \"comments\": 2,\n    \"date_posted\": \"2025-05-04\"\n  },\n  {\n    \"post_id\": \"10008\",\n    \"post_url\": \"https://twitter.com/islathompson/status/10008\",\n    \"user_profile_url\": \"https://twitter.com/islathompson\",\n    \"username\": \"Isla Thompson\",\n    \"bio\": \"Helping startups scale @GrowthStack\",\n    \"content\": \"We've been using LinkedIn Sales Navigator, but frustrated with it lately. Thinking about a change to explore better sales tools.\",\n    \"likes\": 17,\n    \"comments\": 5,\n    \"date_posted\": \"2025-04-20\"\n  },\n  {\n    \"post_id\": \"10009\",\n    \"post_url\": \"https://twitter.com/jacklee/status/10009\",\n    \"user_profile_url\": \"https://twitter.com/jacklee\",\n    \"username\": \"Jack Lee\",\n    \"bio\": \"Sales Tech | GTM | RevOps 🧠\",\n    \"content\": \"We've been using Apollo, but open to alternatives lately. Thinking about a change in our sales enablement tools.\",\n    \"likes\": 29,\n    \"comments\": 0,\n    \"date_posted\": \"2025-04-20\"\n  },\n  {\n    \"post_id\": \"10010\",\n    \"post_url\": \"https://twitter.com/georgelopez/status/10010\",\n    \"user_profile_url\": \"https://twitter.com/georgelopez\",\n    \"username\": \"George Lopez\",\n    \"bio\": \"RevOps | B2B SaaS\",\n    \"content\": \"Anyone else notice ZoomInfo’s pricing just keeps going up? Looking for alternatives to manage leads and sales pipeline better.\",\n    \"likes\": 34,\n    \"comments\": 18,\n    \"date_posted\": \"2025-05-01\"\n  },\n  {\n    \"post_id\": \"10011\",\n    \"post_url\": \"https://twitter.com/felixdavis/status/10011\",\n    \"user_profile_url\": \"https://twitter.com/felixdavis\",\n    \"username\": \"Felix Davis\",\n    \"bio\": \"Growth Marketing @StartupFlow\",\n    \"content\": \"Used RocketReach for a while, but the data quality wasn’t reliable. Might test Clearbit for better sales tools.\",\n    \"likes\": 12,\n    \"comments\": 5,\n    \"date_posted\": \"2025-04-15\"\n  },\n  {\n    \"post_id\": \"10012\",\n    \"post_url\": \"https://twitter.com/heidim/status/10012\",\n    \"user_profile_url\": \"https://twitter.com/heidim\",\n    \"username\": \"Heidi Martinez\",\n    \"bio\": \"CMO @Growwise\",\n    \"content\": \"We trialed Clearbit last month. Impressive enrichment data so far for lead generation and sales enablement!\",\n    \"likes\": 17,\n    \"comments\": 3,\n    \"date_posted\": \"2025-05-04\"\n  },\n  {\n    \"post_id\": \"10013\",\n    \"post_url\": \"https://twitter.com/ianwright/status/10013\",\n    \"user_profile_url\": \"https://twitter.com/ianwright\",\n    \"username\": \"Ian Wright\",\n    \"bio\": \"Head of Sales @B2BAccelerate\",\n    \"content\": \"We moved away from Apollo to try Seamless.ai. Jury’s still out... but liking the potential for sales pipeline improvement.\",\n    \"likes\": 9,\n    \"comments\": 2,\n    \"date_posted\": \"2025-04-28\"\n  },\n  {\n    \"post_id\": \"10014\",\n    \"post_url\": \"https://twitter.com/juliarichards/status/10014\",\n    \"user_profile_url\": \"https://twitter.com/juliarichards\",\n    \"username\": \"Julia Richards\",\n    \"bio\": \"Sales Ops Strategist\",\n    \"content\": \"Just switched to Clay after getting tired of SalesNav. Loving the workflow automation and CRM features!\",\n    \"likes\": 21,\n    \"comments\": 4,\n    \"date_posted\": \"2025-04-22\"\n  },\n  {\n    \"post_id\": \"10015\",\n    \"post_url\": \"https://twitter.com/liamtorres/status/20001\",\n    \"user_profile_url\": \"https://twitter.com/liamtorres\",\n    \"username\": \"Liam Torres\",\n    \"bio\": \"Head of Sales @TechPulse\",\n    \"content\": \"We’ve been testing out Clearbit for lead generation and honestly it’s been a game changer for our sales enablement.\",\n    \"likes\": 34,\n    \"comments\": 9,\n    \"date_posted\": \"2025-05-10\"\n  },\n  {\n    \"post_id\": \"10016\",\n    \"post_url\": \"https://twitter.com/mayachen/status/20002\",\n    \"user_profile_url\": \"https://twitter.com/mayachen\",\n    \"username\": \"Maya Chen\",\n    \"bio\": \"Sales Ops @GrowthGrid\",\n    \"content\": \"Tried out Apollo last week. It's got potential, but still not fully sold on it for our pipeline efforts.\",\n    \"likes\": 22,\n    \"comments\": 4,\n    \"date_posted\": \"2025-04-28\"\n  },\n  {\n    \"post_id\": \"10017\",\n    \"post_url\": \"https://twitter.com/owenpatel/status/20003\",\n    \"user_profile_url\": \"https://twitter.com/owenpatel\",\n    \"username\": \"Owen Patel\",\n    \"bio\": \"RevOps | B2B Growth\",\n    \"content\": \"Seamless.ai helped us automate prospecting. Still tweaking filters, but overall it’s saved us time.\",\n    \"likes\": 18,\n    \"comments\": 3,\n    \"date_posted\": \"2025-05-01\"\n  },\n  {\n    \"post_id\": \"10018\",\n    \"post_url\": \"https://twitter.com/ninaalvarez/status/20004\",\n    \"user_profile_url\": \"https://twitter.com/ninaalvarez\",\n    \"username\": \"Nina Alvarez\",\n    \"bio\": \"Founder @StackSell\",\n    \"content\": \"ZoomInfo's pricing is steep, but their lead enrichment tools are still unmatched in our sales stack.\",\n    \"likes\": 41,\n    \"comments\": 11,\n    \"date_posted\": \"2025-04-20\"\n  },\n  {\n    \"post_id\": \"10019\",\n    \"post_url\": \"https://twitter.com/aidenmoore/status/20005\",\n    \"user_profile_url\": \"https://twitter.com/aidenmoore\",\n    \"username\": \"Aiden Moore\",\n    \"bio\": \"SDR Manager | Hiring now!\",\n    \"content\": \"Sales Navigator still holds up for targeting and prospecting. Just wish it had better CRM syncing.\",\n    \"likes\": 28,\n    \"comments\": 6,\n    \"date_posted\": \"2025-05-05\"\n  },\n  {\n    \"post_id\": \"10020\",\n    \"post_url\": \"https://twitter.com/zoekim/status/20006\",\n    \"user_profile_url\": \"https://twitter.com/zoekim\",\n    \"username\": \"Zoe Kim\",\n    \"bio\": \"Growth Marketing @B2BBoost\",\n    \"content\": \"Using Lusha to fill gaps in our prospect lists. It’s a solid addition to our sales tools this quarter.\",\n    \"likes\": 17,\n    \"comments\": 2,\n    \"date_posted\": \"2025-05-06\"\n  },\n  {\n    \"post_id\": \"10021\",\n    \"post_url\": \"https://twitter.com/ethanclark/status/20007\",\n    \"user_profile_url\": \"https://twitter.com/ethanclark\",\n    \"username\": \"Ethan Clark\",\n    \"bio\": \"Sales @StartupCore\",\n    \"content\": \"Looking for CRM platforms that integrate well with Apollo. Suggestions welcome!\",\n    \"likes\": 25,\n    \"comments\": 5,\n    \"date_posted\": \"2025-05-03\"\n  },\n  {\n    \"post_id\": \"10022\",\n    \"post_url\": \"https://twitter.com/milahart/status/20008\",\n    \"user_profile_url\": \"https://twitter.com/milahart\",\n    \"username\": \"Mila Hart\",\n    \"bio\": \"SaaS Growth Advisor\",\n    \"content\": \"We’re revamping our sales enablement tech stack. ZoomInfo’s data quality is being evaluated now.\",\n    \"likes\": 30,\n    \"comments\": 8,\n    \"date_posted\": \"2025-05-08\"\n  },\n  {\n    \"post_id\": \"10023\",\n    \"post_url\": \"https://twitter.com/calebbrooks/status/20009\",\n    \"user_profile_url\": \"https://twitter.com/calebbrooks\",\n    \"username\": \"Caleb Brooks\",\n    \"bio\": \"Sales Strategy | Ex-Lusha\",\n    \"content\": \"Left Lusha recently. It did the job but now exploring more accurate sales intelligence options.\",\n    \"likes\": 15,\n    \"comments\": 3,\n    \"date_posted\": \"2025-04-30\"\n  },\n  {\n    \"post_id\": \"10024\",\n    \"post_url\": \"https://twitter.com/ellasingh/status/20010\",\n    \"user_profile_url\": \"https://twitter.com/ellasingh\",\n    \"username\": \"Ella Singh\",\n    \"bio\": \"Account Exec | GTM Nerd\",\n    \"content\": \"Clearbit is killing it on enrichment. Way more accurate leads for our pipeline building.\",\n    \"likes\": 27,\n    \"comments\": 6,\n    \"date_posted\": \"2025-04-29\"\n  },\n  {\n    \"post_id\": \"10025\",\n    \"post_url\": \"https://twitter.com/aidenmoore/status/20005\",\n    \"user_profile_url\": \"https://twitter.com/aidenmoore\",\n    \"username\": \"Aiden Moore\",\n    \"bio\": \"SDR Manager | Hiring now!\",\n    \"content\": \"Sales Navigator still holds up for targeting and prospecting. Just wish it had better CRM syncing.\",\n    \"likes\": 9,\n    \"comments\": 2,\n    \"date_posted\": \"2025-05-05\"\n  },\n  {\n    \"post_id\": \"10026\",\n    \"post_url\": \"https://twitter.com/zoekim/status/20006\",\n    \"user_profile_url\": \"https://twitter.com/zoekim\",\n    \"username\": \"Zoe Kim\",\n    \"bio\": \"Growth Marketing @B2BBoost\",\n    \"content\": \"Using Lusha to fill gaps in our prospect lists. It’s a solid addition to our sales tools this quarter.\",\n    \"likes\": 14,\n    \"comments\": 3,\n    \"date_posted\": \"2025-05-06\"\n  },\n  {\n    \"post_id\": \"10027\",\n    \"post_url\": \"https://twitter.com/ethanclark/status/20007\",\n    \"user_profile_url\": \"https://twitter.com/ethanclark\",\n    \"username\": \"Ethan Clark\",\n    \"bio\": \"Sales @StartupCore\",\n    \"content\": \"Looking for CRM platforms that integrate well with Apollo. Suggestions welcome!\",\n    \"likes\": 7,\n    \"comments\": 1,\n    \"date_posted\": \"2025-05-03\"\n  },\n  {\n    \"post_id\": \"10028\",\n    \"post_url\": \"https://twitter.com/milahart/status/20008\",\n    \"user_profile_url\": \"https://twitter.com/milahart\",\n    \"username\": \"Mila Hart\",\n    \"bio\": \"SaaS Growth Advisor\",\n    \"content\": \"We’re revamping our sales enablement tech stack. ZoomInfo’s data quality is being evaluated now.\",\n    \"likes\": 10,\n    \"comments\": 4,\n    \"date_posted\": \"2025-05-08\"\n  },\n  {\n    \"post_id\": \"10029\",\n    \"post_url\": \"https://twitter.com/calebbrooks/status/20009\",\n    \"user_profile_url\": \"https://twitter.com/calebbrooks\",\n    \"username\": \"Caleb Brooks\",\n    \"bio\": \"Sales Strategy | Ex-Lusha\",\n    \"content\": \"Left Lusha recently. It did the job but now exploring more accurate sales intelligence options.\",\n    \"likes\": 8,\n    \"comments\": 2,\n    \"date_posted\": \"2025-04-30\"\n  },\n  {\n    \"post_id\": \"10030\",\n    \"post_url\": \"https://twitter.com/ellasingh/status/20010\",\n    \"user_profile_url\": \"https://twitter.com/ellasingh\",\n    \"username\": \"Ella Singh\",\n    \"bio\": \"Account Exec | GTM Nerd\",\n    \"content\": \"Clearbit is killing it on enrichment. Way more accurate leads for our pipeline building.\",\n    \"likes\": 13,\n    \"comments\": 3,\n    \"date_posted\": \"2025-04-29\"\n  },\n  {\n    \"post_id\": \"10031\",\n    \"post_url\": \"https://twitter.com/noahreed/status/20011\",\n    \"user_profile_url\": \"https://twitter.com/noahreed\",\n    \"username\": \"Noah Reed\",\n    \"bio\": \"Account Manager @CloudFront\",\n    \"content\": \"Exploring some new platforms for team coordination and performance tracking. Any favorites?\",\n    \"likes\": 6,\n    \"comments\": 2,\n    \"date_posted\": \"2025-05-02\"\n  },\n  {\n    \"post_id\": \"10032\",\n    \"post_url\": \"https://twitter.com/ariabecker/status/20012\",\n    \"user_profile_url\": \"https://twitter.com/ariabecker\",\n    \"username\": \"Aria Becker\",\n    \"bio\": \"Team Lead @VentureSaaS\",\n    \"content\": \"The tools we’ve been using feel outdated. We need something that helps our outreach stay personal and quick.\",\n    \"likes\": 11,\n    \"comments\": 1,\n    \"date_posted\": \"2025-05-07\"\n  },\n  {\n    \"post_id\": \"10033\",\n    \"post_url\": \"https://twitter.com/leogordon/status/20013\",\n    \"user_profile_url\": \"https://twitter.com/leogordon\",\n    \"username\": \"Leo Gordon\",\n    \"bio\": \"Startup Sales Coach\",\n    \"content\": \"Sometimes the simplest approach to growth is just asking better questions. Tools come second.\",\n    \"likes\": 15,\n    \"comments\": 2,\n    \"date_posted\": \"2025-05-06\"\n  },\n  {\n    \"post_id\": \"10034\",\n    \"post_url\": \"https://twitter.com/isabelleross/status/20014\",\n    \"user_profile_url\": \"https://twitter.com/isabelleross\",\n    \"username\": \"Isabelle Ross\",\n    \"bio\": \"B2B Go-To-Market @LaunchCircle\",\n    \"content\": \"Trying to reduce the noise in our tech stack. Anyone else consolidating platforms this quarter?\",\n    \"likes\": 9,\n    \"comments\": 1,\n    \"date_posted\": \"2025-05-01\"\n  }\n]\n",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -60,
+        100
+      ],
+      "id": "d83868f5-d36b-46d0-8cf7-71f2a1638561",
+      "name": "Dummy_post_data"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Dummy_post_data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Filtered_results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "All_matched_results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dummy_post_data": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "541caa49-c113-459e-95f7-56c0692b9202",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b83277569d7a2627980899a3158a38772b3afc8c7b309695c7d3128bafc6a5e5"
+  },
+  "id": "xyGilGSunLyVKGZi",
+  "tags": []
+}
