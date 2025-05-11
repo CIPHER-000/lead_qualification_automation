@@ -84,13 +84,13 @@ These outputs help you distinguish between general interest and highly targeted 
 
 **All Matched Results Preview:**
 
-![All Matched Results](screenshots/all_results.png)
+![All Matched Results](screenshots/all_result1.png)
 
-![All Matched Results](screenshots/all_results_2.png)
+![All Matched Results](screenshots/all_result2.png)
 
 **Filtered Results Preview:**
 
-![Filtered Results](screenshots/filtered_results.png)
+![Filtered Results](screenshots/filtered_result.png)
 
 
 ---
