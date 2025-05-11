@@ -39,11 +39,35 @@ This project filters and qualifies LinkedIn posts using keyword rules and Ideal 
 
 ## 📌 Assumptions and Limitations
 
-- **Keyword logic** supports `AND` / `OR` conditions.
-- Posts must match **at least one keyword rule AND the ICP criteria** to qualify.
-- Engagement data (likes, comments) is optional but helps improve confidence scoring.
-- Deduplication is based on the post URL.
-- Dummy data is embedded for testing; for production, connect a LinkedIn scraping source.
+- **Keyword logic** supports both `AND` and `OR` conditions as defined in a separate spreadsheet (or config file), making it easily editable without modifying code.
+- **ICP matching** is based on title and bio fields using configurable role keywords (e.g., "Head of Growth", "Marketing", etc.), also editable via spreadsheet or config.
+- Posts must match **at least one keyword AND one ICP role** to be considered valid for scoring and filtering.
+- **Confidence scoring** is initially computed using hard-coded logic:
+  - +0.2 for keyword match
+  - +0.3 for ICP match
+  - +0.1 for post likes > 10
+  - +0.1 for comments > 3
+  - Capped at 1.0
+- **Trade-off**: Purely rule-based scoring is consistent and predictable but may miss nuances (e.g. tone, dissatisfaction hints, etc.). AI scoring via GPT is more nuanced but can be inconsistent or overly permissive.
+- To balance this, I used a **hybrid approach**: rule-based scoring is applied first in the code node, and GPT then adjusts the score slightly (+/- 0.1) based on qualitative analysis like urgency, dissatisfaction, or intent to switch. This ensures accuracy while preserving human-like judgment.
+- **Matched keywords** are exact or semantically aligned matches and must appear in the post or bio. GPT helps infer additional context but only after initial keyword filtering.
+- **Deduplication** is done via the `post_url` field to ensure unique entries in the final outputs.
+- **Date of extraction** is appended to each result for tracking and auditing purposes.
+- **Engagement data** (likes, comments) is optional but helps improve scoring accuracy.
+- Dummy data is used in this automation (via `dummy_data` node), but the system is designed to plug into a real-time source (e.g., LinkedIn scraper or Serper API).
+- **Google Sheets** is used for dynamic keyword/ICP input and result output, but can be swapped for Airtable, or JSON files.
+- **Limitations**:
+  - No front-end UI.
+  - AI-generated confidence scores may exceed 1.0 if not explicitly capped.
+  - Posts with vague or minimal content may still be scored if the user profile aligns too well with the ICP and minimal keyword signals are present.
+
+
+## ⏳ Optional Features (Not Implemented Due to Time Constraints)
+
+- **Live data sourcing** via LinkedIn scraping or APIs like Serper was planned but skipped to focus on core filtering logic. The system is designed to accept such integrations easily.
+- **Storage flexibility**: Google Sheets is used for both input (keywords, ICP titles) and output (results), but the workflow can be adapted for Airtable or JSON files.
+- **Scheduled extractions** and **alerting via Slack or email** are supported by n8n but were not included to keep the scope focused and manageable within the time limit.
+- Instead I made intentional trade-offs to focus on accuracy and completeness.
 
 ---
 
