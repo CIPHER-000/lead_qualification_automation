@@ -65,7 +65,7 @@ This project filters and qualifies LinkedIn posts using keyword rules and Ideal 
 ## ⏳ Optional Features (Not Implemented Due to Time Constraints)
 
 - **Live data sourcing** via LinkedIn scraping or APIs like Serper was planned but skipped to focus on core filtering logic. The system is designed to accept such integrations easily.
-- **Storage flexibility**: Google Sheets is used for both input (keywords, ICP titles) and output (results), but the workflow can be adapted for Airtable or JSON files.
+- **Storage flexibility**: Google Sheets is used for both input (keywords, ICP titles) and output (results), but the workflow can be adapted for Airtable or other databases.
 - **Scheduled extractions** and **alerting via Slack or email** are supported by n8n but were not included to keep the scope focused and manageable within the time limit.
 - Instead I made intentional trade-offs to focus on accuracy and completeness.
 
