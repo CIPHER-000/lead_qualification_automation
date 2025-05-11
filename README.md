@@ -77,5 +77,3 @@ Two sample output files are included for quick review:
 
 - 📁 [`all_matched_results.json`](results/all_matched_results.json)
 - 📁 [`filtered_results.json`](results/filtered_results.json)
-
-Alternatively, the same results can be viewed in Google Sheets or Airtable (linked separately if available).
